@@ -1,0 +1,116 @@
+===In getColors, before switch statements start.====================================================================================================
+  // lcd.setCursor(0,0);
+  // lcd.print(DAT1,2);
+  // lcd.setCursor(9,0);
+  // lcd.print(DAT0,2);
+
+  // lcd.setCursor(0,1);
+  // lcd.print(s1,BIN);
+  // lcd.setCursor(9,1);
+  // lcd.print(s2,BIN);
+  // lcd.setCursor(0,2);
+  // lcd.print(s3_1,BIN);
+  // lcd.setCursor(9,2);
+  // lcd.print(s3_2,BIN);
+
+  // lcd.setCursor(0,3);
+  // lcd.print(s4,BIN);
+  // lcd.setCursor(9,3);
+  // lcd.print(s5,BIN);
+
+===Shitty version of MAZE state, some functionality I guess===========================================================================================================================
+
+  // if (clapped==false){
+  //     controlByte = B10010001;//2-1-1
+  //     DAT1 = B00000000;//No clap
+  //     DAT0 = B00000000;
+  //     DEC_ = B00000000;
+  //     Serial.write(controlByte);//Tell hub you are in MAZE State and no clap detected
+  //     Serial.write(DAT1);
+  //     Serial.write(DAT0);
+  //     Serial.write(DEC_);
+  //   } else {
+  //       clapped = false;
+  //       controlByte = B10010001; //2-1-1
+  //       DAT1 = B00000001;//clap
+  //       DAT0 = B00000000;
+  //       DEC_ = B00000000;
+  //       Serial.write(controlByte);
+  //       Serial.write(DAT1);
+  //       Serial.write(DAT0);
+  //       Serial.write(DEC_);
+        
+  //       prevState = currState;
+  //       currState = SOS; // make currState SOS
+  //       return;
+  //     }
+  //   if (touched==false){
+  //     controlByte = B10010010;//CAL,SNC,waitTouch
+  //     DAT1 = B00000000;//no touch
+  //     DAT0 = B00000000;
+  //     DEC_ = B00000000;
+  //     Serial.write(controlByte);
+  //     Serial.write(DAT1);
+  //     Serial.write(DAT0);
+  //     Serial.write(DEC_);
+  //     } else {
+  //       touched = false;
+  //       controlByte = B10010010;//CAL,SNC,waitTouch
+  //       DAT1 = B00000001;//touched
+  //       DAT0 = B00000000;
+  //       DEC_ = B00000000;
+  //       Serial.write(controlByte);//Tell hub you are in MAZE state, no touch detected.
+  //       Serial.write(DAT1); //touched
+  //       Serial.write(DAT0);
+  //       Serial.write(DEC_);
+        
+  //       prevState = currState;
+  //       currState = IDEL; // make currState IDLE
+  //       return;
+  //       }
+
+  // bool navcon_firstTime = true;
+  // while ((!clapped) && (!touched)){     
+  //     if (navcon_firstTime){
+  //       firstInNVCN = false;
+  //       controlByte = B10010011;//2-1-3
+  //       DAT1 = B00000001;//
+  //       DAT0 = B00000000;
+  //       DEC_ = B00000000;
+  //       Serial.write(controlByte);//Tell hub you are in MAZE state, no touch detected.
+  //       Serial.write(DAT1); //touched
+  //       Serial.write(DAT0);
+  //       Serial.write(DEC_);
+  //       }      
+  //   }
+
+  // if (clapped){
+  //     clapped = false;
+  //     controlByte = B10010001;
+  //     DAT1 = B00000001;
+  //     DAT0 = B00000000;
+  //     DEC_ = B00000000;
+  //     Serial.write(controlByte);//Tell hub you are in CAL State.
+  //     Serial.write(DAT1); //All below are 0
+  //     Serial.write(DAT0);
+  //     Serial.write(DEC_);
+  //   prevState = currState;
+  //   currState = SOS; // make currState IDLE
+  //   } else {
+  //       touched = false;
+  //       controlByte = B10010010;
+  //       DAT1 = B00000001;
+  //       DAT0 = B00000000;
+  //       DEC_ = B00000000;
+  //       Serial.write(controlByte);//Tell hub you are in MAZE state, no touch detected.
+  //       Serial.write(DAT1); //All below are 0
+  //       Serial.write(DAT0);
+  //       Serial.write(DEC_);
+      
+  //     prevState = currState;
+  //     currState = IDEL; // make currState IDLE
+  //     }
+  // return;
+
+===Also a bad MAZE State. Has some NAVCON=======================================================================================================
+
