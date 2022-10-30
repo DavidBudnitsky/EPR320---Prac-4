@@ -989,7 +989,7 @@ void MAZE_State(){
 
 
       //QTP 3
-      if (incAngle<45){
+      if (incAngle<45){//fix
         flagBKforNextLine = true;
         tellNoTouchNoClap();
             controlByte = 0b10010011;
