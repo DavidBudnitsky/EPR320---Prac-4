@@ -558,6 +558,7 @@ void MAZE_State(){
     if (colors[0]=='R'||colors[0]=='G'||colors[1]=='R'||colors[1]=='G'||colors[3]=='R'||colors[3]=='G'||colors[4]=='R'||colors[4]=='G'){//QTP 1 and 2
       // if red or green was detected:
       if (flagBKforNextLine){
+        if (colors[0]=='G'||colors[1]=='G'||colors[3]=='G'||colors[4]=='G' || colors[0]=='W'||colors[1]=='W'||colors[3]=='W'||colors[4]=='W')
           flagBKforNextLine = false;
           tellNoTouchNoClap();
           controlByte = 0b10010011;
@@ -841,6 +842,8 @@ void MAZE_State(){
       }
 
       //QTP 4
+      // If it is only the far left sensor, and it is the first time seeing this, go fwd. else, do:
+      // stop, reverse, stop, turn, fwd, 
       if (colors[0]=='B'||colors[0]=='K'){
         bool onlyLeft = true;
         for (int k=1;k<5;k++){
@@ -1032,11 +1035,12 @@ void MAZE_State(){
               DAT0 = 90+incAngle;
             }
             // DAT0 = 5;
-            DEC_ = 2;   
+            DEC_ = 3;   
             writeData();
             for (int k=0;k<6;k++){
               readData();
             }
+
             tellNoTouchNoClap();
             controlByte = 0b10010011;
             DAT1 = v_op;//fwd
@@ -1106,5 +1110,3 @@ void SOS_State(){
   DAT1 = 0;
   return;
 }
-
-//ooll
