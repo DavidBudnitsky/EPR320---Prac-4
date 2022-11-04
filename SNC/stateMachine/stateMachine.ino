@@ -13,14 +13,14 @@ int rotAngle, incAngle, v_r, v_l, dist;
 bool rotDir;
 bool flagBKforNextLine;
 
-bool endFlag;
+bool endFlag = false;
 
 bool bigLeftRG, bigLeftBK, bigRightRG, bigRightBK;
 bool smallBKFlag;
 
 long startListenTime;
 
-int v_op = 40;
+int v_op = 80;
 
 byte controlByte = 0;
 byte DAT1 = 1, DAT0 = 0, DEC_ = 0;
@@ -89,9 +89,11 @@ void ISR_clapSnap(){
 }
 
 // helper functions
+
+/*
+Prints state to LCD
+*/
 void lcd_info(){
-// prints to LCD. used for debugging,
-// but won't be part of final car.
   lcd.clear();    
     lcd.setCursor(0,1);
     lcd.print("STATE:");
@@ -109,6 +111,9 @@ void lcd_info(){
     }
 }
 
+/*
+Writes ctrl, DAT1, DAT0 to HUB to Serial, in that order
+*/
 void writeData(){
   // writes ctrl, DAT1, DAT0 to HUB
   Serial.write(controlByte);
@@ -117,6 +122,9 @@ void writeData(){
   Serial.write(DEC_);
 }
 
+/*
+Waits for 4+ bytes to be available, then reads them
+*/
 void readData(){
   while (Serial.available()<4){
     //wait
@@ -131,9 +139,10 @@ void readData(){
   }
 }
 
+/*
+Once received colours from SS, save to colours array
+*/
 void getColours(){ 
-  // maps DATA = <DAT1:DAT0> to krkt colours
-  // and puts them in colours array
   byte s1,s2,s3_1,s3_2,s4,s5;
 
   s1 = DAT1 &   0b01110000;
@@ -245,6 +254,9 @@ void getColours(){
   }
 }
 
+/*
+Puts sensor colors in array then prints to LCD
+*/
 void printColours(){
   getColours();
   lcd.setCursor(0,0);
@@ -276,75 +288,117 @@ void tellNoTouchNoClap(){
   return;
 }
 
+/*
+Reads 6 bytes during MAZE state and prints diagnostics to LCD.
+*/
 void getAndPrintDiagnostics(){
-	readData();
-	// controlByte = 0b0;
-	while (controlByte!=0b10110010){//2-3-2 SS incAngle
-		switch (controlByte){  
-			case 0b10100010:{  // 2-2-2 - MDPS  rotation
-				rotAngle = (DAT1<<8)|(DAT0);
-				rotDir = (DEC_==2);
-				// int angle = (DAT1<<8)|(DAT0);
-				// bool dir = (DEC_==2);
-				lcd.setCursor(11,0);
-				if (rotDir){
-				lcd.print("rot:+   ");
-				} else {
-				lcd.print("rot:-   ");
-				}
-        lcd.setCursor(15,0);
-				lcd.print(rotAngle);
-				// lcd.print(char(223));
-				break;
-			}
-			case 0b10100011:{// 2-2-3 MDPS speed
-				lcd.setCursor(0,2);
-				lcd.print("Vl:  ");
-				v_l = DAT0;
-				lcd.setCursor(3,2);
-				lcd.print(v_l);
+    for (int k=0;k<6;k++){
+        readData();
+        switch (controlByte){
+        case 0b10100010:{  // 2-2-2 - MDPS  rotation
+          rotAngle = (DAT1<<8)|(DAT0);
+          rotDir = (DEC_==2);
+          lcd.setCursor(11,0);
+          if (rotDir){
+          lcd.print("rot:+   ");
+          } else {
+          lcd.print("rot:-   ");
+          }
+          lcd.setCursor(16,0);
+          lcd.print(rotAngle);
+          break;
+			  }
+        case 0b10100011:{// 2-2-3 MDPS speed
+          lcd.setCursor(0,2);
+          lcd.print("Vl:  ");
+          v_l = DAT0;
+          lcd.setCursor(3,2);
+          lcd.print(v_l);
 
-				lcd.setCursor(8,2);
-				lcd.print("Vr:  ");
-				v_r = DAT1;
-				lcd.setCursor(11,2);
-				lcd.print(v_r);
+          lcd.setCursor(8,2);
+          lcd.print("Vr:  ");
+          v_r = DAT1;
+          lcd.setCursor(11,2);
+          lcd.print(v_r);
 
-				lcd.print(" mm/s");
-				break;
-			}
-			case 0b10100100:{//2-2-4 MDPS distance
-				dist = (DAT1<<8)|(DAT0);
-				// int dist = (DAT1<<8)|(DAT0);
-				lcd.setCursor(0,3);
-				lcd.print("DIST:          ");
-        lcd.setCursor(5,3);
-				lcd.print(dist);
-				lcd.print(" mm");
-				break;
-			}
-			case 0b10110001:{//Colors: 2-3-1 SS
-				printColours();
-				break; 
-			}
-			case 0b10110011:{//2-3-3 SS EOM
-				////ignore
-				// setNextState(IDEL);
-				// lcd.clear();
-				// return;
-				break;      
-			}
-		}
-		readData();
-	}
-	// done for receiving 2-3-2
-	lcd.setCursor(11,1);
-	lcd.print("INC:   ");
-  lcd.setCursor(15,1);
-	incAngle = DAT1;
-	lcd.print(incAngle);
+          lcd.print(" mm/s");
+          break;
+        }
+        case 0b10100100:{//2-2-4 MDPS distance
+          dist = (DAT1<<8)|(DAT0);
+          lcd.setCursor(0,3);
+          lcd.print("DIST:          ");
+          lcd.setCursor(5,3);
+          lcd.print(dist);
+          lcd.print(" mm");
+          break;
+        }
+        case 0b10110001:{//Colors: 2-3-1 SS
+          printColours();
+          break; 
+			  }
+        case 0b10110010:{//2-3-2 SS incAngle
+          lcd.setCursor(11,1);
+          lcd.print("INC:   ");
+          lcd.setCursor(15,1);
+          incAngle = DAT1;
+          lcd.print(incAngle);
+        }
+        case 0b10110011:{//2-3-3 SS EOM
+        /*
+        SNC/HUB transmits EOM control byte. All subsystems move to IDLE state.
+        */
+          // setNextState(IDEL);
+          // lcd.clear();
+          // return;
+        }
+        default:{
+          //Do something?
+        }
+      }
+
+    }
+    lcd.setCursor(16,3);
+    // lcd.print("D");
 }
 
+void goFWD(){
+  controlByte = 0b10010011;
+  DAT1 = v_op;//fwd
+  DAT0 = v_op;
+  DEC_ = 0;
+  writeData();
+}
+
+void stop(){
+  controlByte = 0b10010011;
+  DAT1 = 0;//stop
+  DAT0 = 0;
+  DEC_ = 0;
+  writeData();
+}
+
+void reverse(int distance){
+  controlByte = 0b10010011;
+  DAT1 = v_op;//reverse
+  DAT0 = v_op;
+  DEC_ = 0;
+  writeData();
+}
+
+/*
+Give angle in degrees.
+Direction:
+2 = left (CCW, positive).
+3 = right (CW, negative)
+*/
+void rotate(int angle, int direction){
+  controlByte = 0b10010011;
+  DAT1 = (angle & 0xFF00)>>8;
+  DAT0 = angle & 0x00FF;
+  DEC_ = direction;
+  writeData();
+}
 
 //states
 void IDLE_State(){
@@ -439,7 +493,7 @@ void MAZE_State(){
     // listen for a clap,touch immediately after
     lcd.setCursor(19,3);
     lcd.print("C");
-    delayMicroseconds(listeningTime*1000);
+    // delayMicroseconds(listeningTime*1000);
     if (clapped){
       controlByte = 0b10010001; // listening for clap. 2-1-1
       DAT1 = 0b00000001; // clap
@@ -459,13 +513,13 @@ void MAZE_State(){
   }
     lcd.setCursor(19,3);
     lcd.print("T");
-    delayMicroseconds(listeningTime*1000);
+    // delayMicroseconds(listeningTime*1000);
     if (touched){      
-      controlByte = 0b10010001; // listening for clap. 2-1-1
-      DAT1 = 0b00000000; // no clap
-      DAT0 = 0b00000000;
-      DEC_ = 0b00000000;
-      writeData();
+      // controlByte = 0b10010001; // listening for clap. 2-1-1
+      // DAT1 = 0b00000000; // no clap
+      // DAT0 = 0b00000000;
+      // DEC_ = 0b00000000;
+      // writeData();
 
       controlByte = 0b10010010; // listening for touch. 2-1-2
       DAT1 = 0b00000001; // touch
@@ -502,556 +556,68 @@ void MAZE_State(){
     getAndPrintDiagnostics();
 
     // NAVCON Stuff below
+    //in general, if all white, go fwd:
+    if (colors[0]=='W' && colors[1]=='W' && colors[2]=='W' && colors[3]=='W' && colors[4]=='W'){
+      if (endFlag){
+        stop();
+        getAndPrintDiagnostics();
+        rotate(360, 2);
+        getAndPrintDiagnostics();
+        setNextState(IDEL);
+        return;
+      } else {
+        goFWD();
+      }
+    }
+
+    //first handle QTP 1, 2, 5. - all detect
+
     /*
     QTP 1:
-      Traverse Green/Red at 𝜃𝑖 ≤ 5°
-      𝜃𝑖 ≤ 5°? yes = fwd. no?
-      𝜃𝑖 ≤ 45° = stop, reverse, stop, rotate, fwd
+      3. The MARV must stop before changing direction or turning (rotating)
+      4. The MARV may not traverse (cross) a green or red line with an incidence angle of 𝜃𝑖 > 5°.
+      If the MARV encounters a green line at an angle of 5° < 𝜃𝑖 < 45°, it must reverse, apply steering correction, and re-attempt traversing the line.
+    
     QTP 2:
-      Detect green/red at 𝜃𝑖 >  45°
-      Stop, reverse, stop, rotate, fwd until 𝜃𝑖 ≤ 45°
-    */ 
+      5. If in going forward the MARV detects a green or red line at an incidence angle 𝜃𝜃𝑖𝑖 > 45° , the MARV must reverse and apply steering correction through a single rotation of ≤ 5° toward the line.
+      This process (forward, detect, reverse, rotate) must repeat until 𝜃𝑖 < 45° at which point specification 4 must be adhered to.
 
-    lcd.setCursor(16,3);
-    lcd.print(incAngle);
-
-    // getColours();
-    if (colors[0]=='W'&&colors[1]=='W'&&colors[2]=='W'&&colors[3]=='W'&&colors[4]=='W'){ // handles QTP 5
-      // flagBKforNextLine = false;
-        if (endFlag){
-          endFlag = false;
-          tellNoTouchNoClap();
-          controlByte = 0b10010011;
-          DAT1 = 0;//stop
-          DAT0 = 0;
-          DEC_ = 0;
-          writeData();
-          for (int k=0;k<6;k++){
-            readData();
-          }
-
-          tellNoTouchNoClap();
-          controlByte = 0b10010011;
-          DAT1 = 1;//rotate
-          DAT0 = 104;
-          DEC_ = 3;        
-          writeData();
-          for (int k=0;k<6;k++){
-            readData();
-          }
-
-          //go to IDLE State
-          setNextState(IDEL);
-          return;
+    QTP 5:
+      8. If the MARV crosses red (exit), the maze is solved and the MARV must do a 360° turn, stop and transition into the IDLE state.
+    */
+    if (colors[0]=='R' || colors[1]=='R' || colors[2]=='R' || colors[3]=='R' || colors[4]=='R' || colors[0]=='G' || colors[1]=='G' || colors[2]=='G' || colors[3]=='G' || colors[4]=='G'){
+      bool allRG = true;
+      for (int k=0;k<5;k++){
+        if (colors[k]=='R'||colors[k]=='G'){
+          continue;
+        } else {
+          allRG = false;
+        }
+      }
+      if (colors[1]=='R' && colors[2]=='R' && colors[3]=='R'){
+        tellNoTouchNoClap();
+        goFWD();
+        getAndPrintDiagnostics();
+        endFlag = true;
       } else {
-        tellNoTouchNoClap();
-        controlByte = 0b10010011;
-        DAT1 = v_op;//fwd
-        DAT0 = v_op;
-        DEC_ = 0;
-        writeData();
-      }
-    }
-    if (colors[1]=='R'&&colors[2]=='R'&&colors[3]=='R'){// QTP 5
-      endFlag = true;
-    }
-    if (colors[0]=='R'||colors[0]=='G'||colors[1]=='R'||colors[1]=='G'||colors[3]=='R'||colors[3]=='G'||colors[4]=='R'||colors[4]=='G'){//QTP 1 and 2
-      // if red or green was detected:
-      if (flagBKforNextLine){
-        if (colors[0]=='G'||colors[1]=='G'||colors[3]=='G'||colors[4]=='G' || colors[0]=='W'||colors[1]=='W'||colors[3]=='W'||colors[4]=='W')
-          flagBKforNextLine = false;
+          if (allRG){
           tellNoTouchNoClap();
-          controlByte = 0b10010011;
-          DAT1 = v_op;//fwd
-          DAT0 = v_op;
-          DEC_ = 0;
-          writeData();
-          continue;
-      }
-      // QTP 2: R/G, theta>45
-      if (colors[0]=='R'||colors[0]=='G'){
-        bool onlyLeft = true;
-        for (int k=1;k<5;k++){
-          if (colors[k]=='R'||colors[k]=='G'){
-            onlyLeft = false;
+          goFWD();
+          getAndPrintDiagnostics();
+        } else {
+          if (incAngle<=5){
+            tellNoTouchNoClap();
+            goFWD();
+            getAndPrintDiagnostics();
           }
-        }
-        if (onlyLeft){
-          if (bigLeftRG){
-            bigLeftRG = false;
-            //stop, reverse, stop, CCW 5, fwd, use continue statement to go to next while loop
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//stop
-            DAT0 = 0;
-            DEC_ = 0;
-            writeData();
-
-            for (int k=0;k<6;k++){
-              readData();
-            }
-            // getAndPrintDiagnostics();
-
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//reverse
-            DAT0 = v_op;
-            DEC_ = 1;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//stop
-            DAT0 = 0;
-            DEC_ = 0;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//rotate
-            DAT0 = 5;
-            DEC_ = 2;   
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
-          } else {
-            bigLeftRG = true;
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
-          }
-          continue;
         }
       }
-      bigLeftRG = false;
-
-      if (colors[4]=='R'||colors[4]=='G'){
-        bool onlyRight = true;
-        for (int k=0;k<4;k++){
-          if (colors[k]=='R'||colors[k]=='G'){
-            onlyRight = false;
-          }
-        }
-        if (onlyRight){
-          if (bigRightRG){
-            bigRightRG = false;
-            //stop, reverse, stop, CCW 5, fwd, use continue statement to go to next while loop
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//stop
-            DAT0 = 0;
-            DEC_ = 0;
-            writeData();
-
-            for (int k=0;k<6;k++){
-              readData();
-            }
-            // getAndPrintDiagnostics();
-
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//reverse
-            DAT0 = v_op;
-            DEC_ = 1;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//stop
-            DAT0 = 0;
-            DEC_ = 0;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//rotate
-            DAT0 = 5;
-            DEC_ = 3;   
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
-          } else {
-            bigRightRG = true;
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
-          }
-          continue;
-        }
-      }
-      bigRightRG = false;
-     
-      if (incAngle<=5){
-        tellNoTouchNoClap();
-        controlByte = 0b10010011;
-        DAT1 = v_op;
-        DAT0 = v_op;
-        DEC_ = 0;
-        writeData();
-        // for (int k=0;k<6;k++){
-        //   readData();
-        // }
-        // getAndPrintDiagnostics();
-      } else {
-        if (incAngle<=45 && incAngle>5){
-          tellNoTouchNoClap();
-          controlByte = 0b10010011;
-          DAT1 = 0;//stop
-          DAT0 = 0;
-          DEC_ = 0;
-          writeData();
-
-          for (int k=0;k<6;k++){
-            readData();
-          }
-          // getAndPrintDiagnostics();
-          tellNoTouchNoClap();
-          controlByte = 0b10010011;
-          DAT1 = v_op;//reverse
-          DAT0 = v_op;
-          DEC_ = 1;
-          writeData();
-          for (int k=0;k<6;k++){
-            readData();
-          }
-
-          tellNoTouchNoClap();
-          controlByte = 0b10010011;
-          DAT1 = 0;//stop
-          DAT0 = 0;
-          DEC_ = 0;
-          writeData();
-          for (int k=0;k<6;k++){
-            readData();
-          }
-
-          tellNoTouchNoClap();
-          controlByte = 0b10010011;
-          DAT1 = incAngle>>8;//rotate
-          DAT0 = incAngle;
-          if (colors[0]=='R'||colors[0]=='G'||colors[1]=='R'||colors[1]=='G'){
-            DEC_ = 2;//on left side, set DEC to 2 for CCW
-          } else {
-            DEC_ = 3;
-          }          
-          writeData();
-          for (int k=0;k<6;k++){
-            readData();
-          }
-
-
-          tellNoTouchNoClap();
-          controlByte = 0b10010011;
-          DAT1 = v_op;//fwd
-          DAT0 = v_op;
-          DEC_ = 0;
-          writeData();
-          // for (int k=0;k<6;k++){
-          //   readData();
-          // }
-          // getAndPrintDiagnostics();
-        }
-      }
-    }
-    if (colors[0]=='B'||colors[0]=='K'||colors[1]=='B'||colors[1]=='K'||colors[3]=='B'||colors[3]=='K'||colors[4]=='B'||colors[4]=='K'){
-      if (flagBKforNextLine){
-        flagBKforNextLine = false;
-
-        tellNoTouchNoClap();
-        controlByte = 0b10010011;
-        DAT1 = 0;//stop
-        DAT0 = 0;
-        DEC_ = 0;
-        writeData();
-
-        for (int k=0;k<6;k++){
-          readData();
-        }
-        // getAndPrintDiagnostics();
-
-
-        tellNoTouchNoClap();
-        controlByte = 0b10010011;
-        DAT1 = v_op;//reverse
-        DAT0 = v_op;
-        DEC_ = 1;
-        writeData();
-        for (int k=0;k<6;k++){
-          readData();
-        }
-
-        tellNoTouchNoClap();
-        controlByte = 0b10010011;
-        DAT1 = 0;//stop
-        DAT0 = 0;
-        DEC_ = 0;
-        writeData();
-        for (int k=0;k<6;k++){
-          readData();
-        }
-
-        tellNoTouchNoClap();
-        controlByte = 0b10010011;
-        DAT1 = 0;//rotate
-        DAT0 = 180;
-        DEC_ = 3;   
-        writeData();
-        for (int k=0;k<6;k++){
-          readData();
-        }
-        tellNoTouchNoClap();
-        controlByte = 0b10010011;
-        DAT1 = v_op;//fwd
-        DAT0 = v_op;
-        DEC_ = 0;
-        writeData();
-      }
-
-      //QTP 4
-      // If it is only the far left sensor, and it is the first time seeing this, go fwd. else, do:
-      // stop, reverse, stop, turn, fwd, 
-      if (colors[0]=='B'||colors[0]=='K'){
-        bool onlyLeft = true;
-        for (int k=1;k<5;k++){
-          if (colors[k]=='B'||colors[k]=='K'){
-            onlyLeft = false;
-          }
-        }
-        if (onlyLeft){
-          if (bigLeftBK){
-            bigLeftBK = false;
-            //stop, reverse, stop, CW 5, fwd, use continue statement to go to next while loop
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//stop
-            DAT0 = 0;
-            DEC_ = 0;
-            writeData();
-
-            for (int k=0;k<6;k++){
-              readData();
-            }
-            // getAndPrintDiagnostics();
-
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//reverse
-            DAT0 = v_op;
-            DEC_ = 1;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//stop
-            DAT0 = 0;
-            DEC_ = 0;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//rotate
-            DAT0 = 5;
-            DEC_ = 3;   
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
-          } else {
-            bigLeftBK = true;
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
-          }
-          continue;
-        }
-      }
-      bigLeftBK = false;
-
-      if (colors[4]=='B'||colors[4]=='K'){
-        bool onlyRight = true;
-        for (int k=0;k<4;k++){
-          if (colors[k]=='B'||colors[k]=='K'){
-            onlyRight = false;
-          }
-        }
-        if (onlyRight){
-          if (bigRightBK){
-            bigRightBK = false;
-            //stop, reverse, stop, CCW 5, fwd, use continue statement to go to next while loop
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//stop
-            DAT0 = 0;
-            DEC_ = 0;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-            // getAndPrintDiagnostics();
-
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//reverse
-            DAT0 = v_op;
-            DEC_ = 1;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//stop
-            DAT0 = 0;
-            DEC_ = 0;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//rotate
-            DAT0 = 5;
-            DEC_ = 2;   
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
-            bigRightBK = false;
-          } else {
-            bigRightBK = true;
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
-          }
-          continue;
-        }
-      }
-      bigRightBK = false;  
-
-
-      //QTP 3
-      if (incAngle<45){//fix
-        flagBKforNextLine = true;
-        tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//stop
-            DAT0 = 0;
-            DEC_ = 0;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-            // getAndPrintDiagnostics();
-
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//reverse
-            DAT0 = v_op;
-            DEC_ = 1;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//stop
-            DAT0 = 0;
-            DEC_ = 0;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//rotate
-            if (colors[0]=='B'||colors[1]=='B'||colors[0]=='K'||colors[1]=='K'){
-              DAT0 = 90-incAngle;
-            } else {
-              DAT0 = 90+incAngle;
-            }
-            // DAT0 = 5;
-            DEC_ = 3;   
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
-      }
-
+      
+      
     }
   }
-
+    
+      
   // lcd.setCursor(12,3);
   // lcd.print("End Loop");
   // last test to send to next states
