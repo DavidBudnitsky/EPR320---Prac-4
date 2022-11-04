@@ -1,6 +1,7 @@
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
 //main
+
 char colors[5] = {'W','W','W','W','W'};
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);// connect SDA to A4, SCL to A5 for arduino nano. Connects I2C LCD Display
