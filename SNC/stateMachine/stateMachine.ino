@@ -21,7 +21,7 @@ bool smallBKFlag;
 
 long startListenTime;
 
-int v_op = 80;
+int v_op = 85;
 
 //16, 80, 81, 82, 83, 208
 const int numSent = 6;
@@ -140,14 +140,19 @@ void readData(){
       DAT0 = byte(Serial.read());
       DEC_ = byte(Serial.read());
     }
-    lcd.setCursor(16,3);
+    lcd.setCursor(16,1);
     lcd.print(controlByte);
+    lcd.setCursor(16,2);
+    lcd.print(DAT1);
+    lcd.setCursor(16,3);
+    lcd.print(DAT0);
 
     for (int k=0;k<numSent;k++){
       // byte controlsSent[6]  = {0b00010000, 0b01010000, 0b10010001, 0b10010010, 0b10010011, 0b11010000};
       if (controlByte==controlsSent[k]){
         //do noting
         iSentThis = true;
+        lcd.setCursor(19, 1);
         lcd.print('D');
         break;
       } else {
@@ -158,6 +163,7 @@ void readData(){
       writeData();
       for (int k=0; k<numUsed;k++){
             if (controlByte==controlsUsed[k]){
+              lcd.setCursor(19, 1);
               lcd.print('U');
 
               if (controlByte==0b10110011){
