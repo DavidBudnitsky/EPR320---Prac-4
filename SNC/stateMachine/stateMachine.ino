@@ -593,16 +593,18 @@ void MAZE_State(){
             }
             // getAndPrintDiagnostics();
 
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//reverse
-            DAT0 = v_op;
-            DEC_ = 1;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
+            for (int m=0;m<20;m++){
+              tellNoTouchNoClap();
+              controlByte = 0b10010011;
+              DAT1 = v_op;//reverse
+              DAT0 = v_op;
+              DEC_ = 1;
+              writeData();
+              for (int k=0;k<6;k++){
+                readData();
+              }
             }
+            
 
             tellNoTouchNoClap();
             controlByte = 0b10010011;
@@ -666,16 +668,18 @@ void MAZE_State(){
             }
             // getAndPrintDiagnostics();
 
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//reverse
-            DAT0 = v_op;
-            DEC_ = 1;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
+            for (int m=0;m<20;m++){
+              tellNoTouchNoClap();
+              controlByte = 0b10010011;
+              DAT1 = v_op;//reverse
+              DAT0 = v_op;
+              DEC_ = 1;
+              writeData();
+              for (int k=0;k<6;k++){
+                readData();
+              }
             }
+            
 
             tellNoTouchNoClap();
             controlByte = 0b10010011;
@@ -740,15 +744,19 @@ void MAZE_State(){
             readData();
           }
           // getAndPrintDiagnostics();
-          tellNoTouchNoClap();
-          controlByte = 0b10010011;
-          DAT1 = v_op;//reverse
-          DAT0 = v_op;
-          DEC_ = 1;
-          writeData();
-          for (int k=0;k<6;k++){
-            readData();
+
+          for (int m=0;m<20;m++){
+            tellNoTouchNoClap();
+            controlByte = 0b10010011;
+            DAT1 = v_op;//reverse
+            DAT0 = v_op;
+            DEC_ = 1;
+            writeData();
+            for (int k=0;k<6;k++){
+              readData();
+            }
           }
+          
 
           tellNoTouchNoClap();
           controlByte = 0b10010011;
@@ -804,16 +812,18 @@ void MAZE_State(){
         }
         // getAndPrintDiagnostics();
 
-
-        tellNoTouchNoClap();
-        controlByte = 0b10010011;
-        DAT1 = v_op;//reverse
-        DAT0 = v_op;
-        DEC_ = 1;
-        writeData();
-        for (int k=0;k<6;k++){
-          readData();
+        for (int m=0;m<20;m++){
+          tellNoTouchNoClap();
+          controlByte = 0b10010011;
+          DAT1 = v_op;//reverse
+          DAT0 = v_op;
+          DEC_ = 1;
+          writeData();
+          for (int k=0;k<6;k++){
+            readData();
+          }
         }
+        
 
         tellNoTouchNoClap();
         controlByte = 0b10010011;
@@ -868,15 +878,16 @@ void MAZE_State(){
             }
             // getAndPrintDiagnostics();
 
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//reverse
-            DAT0 = v_op;
-            DEC_ = 1;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
+            for (int m=0;m<15;m++){
+              tellNoTouchNoClap();
+              controlByte = 0b10010011;
+              DAT1 = v_op;//reverse
+              DAT0 = v_op;
+              DEC_ = 1;
+              writeData();
+              for (int k=0;k<6;k++){
+                readData();
+              }
             }
 
             tellNoTouchNoClap();
@@ -940,16 +951,18 @@ void MAZE_State(){
             }
             // getAndPrintDiagnostics();
 
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//reverse
-            DAT0 = v_op;
-            DEC_ = 1;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
+            for (int m=1;m<20;m++){
+              tellNoTouchNoClap();
+              controlByte = 0b10010011;
+              DAT1 = v_op;//reverse
+              DAT0 = v_op;
+              DEC_ = 1;
+              writeData();
+              for (int k=0;k<6;k++){
+                readData();
+              }
             }
+            
 
             tellNoTouchNoClap();
             controlByte = 0b10010011;
@@ -993,71 +1006,79 @@ void MAZE_State(){
 
 
       //QTP 3
-      if (incAngle<45){//fix
+      bool allBK = true;
+      for (int k=0;k<5;k++){
+        if (!(colors[k]=='B'||colors[k]=='K')){
+          allBK = false;
+        }
+        
+      }
+
+      if (allBK || incAngle<45){//fix
         flagBKforNextLine = true;
         tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//stop
-            DAT0 = 0;
-            DEC_ = 0;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
-            // getAndPrintDiagnostics();
+        controlByte = 0b10010011;
+        DAT1 = 0;//stop
+        DAT0 = 0;
+        DEC_ = 0;
+        writeData();
+        for (int k=0;k<6;k++){
+          readData();
+        }
+        // getAndPrintDiagnostics();
 
-            bool keepReversing = true;
-            while (keepReversing){
-              tellNoTouchNoClap();
-              controlByte = 0b10010011;
-              DAT1 = v_op;//reverse
-              DAT0 = v_op;
-              DEC_ = 1;
-              writeData();
-              for (int k=0;k<6;k++){
-                readData();
-                if (controlByte==0b10100100){
-                  if (DAT0>=75){
-                    keepReversing = false;
-                    lcd.setCursor(15,3);
-                    lcd.print("8=D-");
-                  }
-                }
+        bool keepReversing = true;
+        while (keepReversing){
+          tellNoTouchNoClap();
+          controlByte = 0b10010011;
+          DAT1 = v_op;//reverse
+          DAT0 = v_op;
+          DEC_ = 1;
+          writeData();
+          for (int k=0;k<6;k++){
+            readData();
+            if (controlByte==0b10100100){
+              if (DAT0>=75){
+                keepReversing = false;
+                lcd.setCursor(15,3);
+                lcd.print("8=D-");
               }
             }
+          }
+        }
             
 
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//stop
-            DAT0 = 0;
-            DEC_ = 0;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
+        tellNoTouchNoClap();
+        controlByte = 0b10010011;
+        DAT1 = 0;//stop
+        DAT0 = 0;
+        DEC_ = 0;
+        writeData();
+        for (int k=0;k<6;k++){
+          readData();
+        }
 
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = 0;//rotate
-            if (colors[0]=='B'||colors[1]=='B'||colors[0]=='K'||colors[1]=='K'){
-              DAT0 = 90-incAngle;
-            } else {
-              DAT0 = 90+incAngle;
-            }
-            // DAT0 = 5;
-            DEC_ = 3;   
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
+        tellNoTouchNoClap();
+        controlByte = 0b10010011;
+        DAT1 = 0;//rotate
+        if (colors[0]=='B'||colors[1]=='B'||colors[0]=='K'||colors[1]=='K'){
+          DAT0 = 90-incAngle;
+        } else {
+          DAT0 = 90+incAngle;
+        }
+        // DAT0 = 5;
+        DEC_ = 3;   
+        writeData();
+        for (int k=0;k<6;k++){
+          readData();
+        }
 
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
+        tellNoTouchNoClap();
+        controlByte = 0b10010011;
+        DAT1 = v_op;//fwd
+        DAT0 = v_op;
+        DEC_ = 0;
+        writeData();
       }
 
     }
