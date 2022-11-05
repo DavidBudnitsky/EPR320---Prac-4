@@ -21,7 +21,7 @@ bool smallBKFlag;
 
 long startListenTime;
 
-int v_op = 40;
+int v_op = 80;
 
 byte controlByte = 0;
 byte DAT1 = 1, DAT0 = 0, DEC_ = 0;
