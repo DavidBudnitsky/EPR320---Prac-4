@@ -21,7 +21,7 @@ bool smallBKFlag;
 
 long startListenTime;
 
-int v_op = 40;
+int v_op = 80;
 
 byte controlByte = 0;
 byte DAT1 = 1, DAT0 = 0, DEC_ = 0;
@@ -1006,16 +1006,26 @@ void MAZE_State(){
             }
             // getAndPrintDiagnostics();
 
-
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//reverse
-            DAT0 = v_op;
-            DEC_ = 1;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
+            bool keepReversing = true;
+            while (keepReversing){
+              tellNoTouchNoClap();
+              controlByte = 0b10010011;
+              DAT1 = v_op;//reverse
+              DAT0 = v_op;
+              DEC_ = 1;
+              writeData();
+              for (int k=0;k<6;k++){
+                readData();
+                if (controlByte==0b10100100){
+                  if (DAT0>=75){
+                    keepReversing = false;
+                    lcd.setCursor(15,3);
+                    lcd.print("8=D-");
+                  }
+                }
+              }
             }
+            
 
             tellNoTouchNoClap();
             controlByte = 0b10010011;
