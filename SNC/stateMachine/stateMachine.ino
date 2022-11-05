@@ -1,6 +1,6 @@
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
-// adding funcs
+// fix n3
 
 char colors[5] = {'W','W','W','W','W'};
 
