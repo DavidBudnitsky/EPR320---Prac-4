@@ -23,6 +23,14 @@ long startListenTime;
 
 int v_op = 80;
 
+//16, 80, 81, 82, 83, 208
+const int numSent = 6;
+byte controlsSent[numSent]  = {0b00010000, 0b01010000, 0b10010001, 0b10010010, 0b10010011, 0b11010000};
+//0, 112, 96, 
+const int numUsed = 12;
+byte controlsUsed[numUsed] = {0b00000000, 0b01110000, 0b01110001, 0b01100000, 0b10100001, 0b10100010, 0b10100011, 0b10100100, 0b10110001, 0b10110010, 0b10110011, 0b11100100};
+
+
 byte controlByte = 0;
 byte DAT1 = 1, DAT0 = 0, DEC_ = 0;
 
@@ -119,17 +127,53 @@ void writeData(){
 }
 
 void readData(){
-  while (Serial.available()<4){
-    //wait
-  }
-  if (Serial.available()>=4){
-    // if 4 bytes available, reads the 4 bytes from
-    // HUB to my 4 respective bytes.
-    controlByte = byte(Serial.read());
-    DAT1 = byte(Serial.read());
-    DAT0 = byte(Serial.read());
-    DEC_ = byte(Serial.read());
-  }
+  bool iSentThis = true;
+  while (iSentThis) {
+    while (Serial.available()<4){
+      //wait
+    }
+    if (Serial.available()>=4){
+      // if 4 bytes available, reads the 4 bytes from
+      // HUB to my 4 respective bytes.
+      controlByte = byte(Serial.read());
+      DAT1 = byte(Serial.read());
+      DAT0 = byte(Serial.read());
+      DEC_ = byte(Serial.read());
+    }
+    lcd.setCursor(16,3);
+    lcd.print(controlByte);
+
+    for (int k=0;k<numSent;k++){
+      // byte controlsSent[6]  = {0b00010000, 0b01010000, 0b10010001, 0b10010010, 0b10010011, 0b11010000};
+      if (controlByte==controlsSent[k]){
+        //do noting
+        iSentThis = true;
+        lcd.print('D');
+        break;
+      } else {
+        iSentThis = false;
+      }
+    }
+    if (!iSentThis){
+      writeData();
+      for (int k=0; k<numUsed;k++){
+            if (controlByte==controlsUsed[k]){
+              lcd.print('U');
+
+              if (controlByte==0b10110011){
+                //stop
+                
+                setNextState(IDEL);
+                return;
+              }
+
+              return;
+            }
+          }
+          iSentThis = true;
+        }
+    }
+    
 }
 
 void getColours(){ 
@@ -372,14 +416,14 @@ void IDLE_State(){
 }
 
 void CAL_State(){
-  if (firstTime){
-    firstTime = false;
-    controlByte = B01010000;
-    DAT1 = B00000000;
-    DAT0 = B00000000;
-    DEC_ = B00000000;
-    writeData();
-  }
+  // if (firstTime){
+  //   firstTime = false;
+  //   controlByte = B01010000;
+  //   DAT1 = B00000000;
+  //   DAT0 = B00000000;
+  //   DEC_ = B00000000;
+  //   writeData();
+  // }
   // get eoc from SS:
   //ctrl: 01 11 0000 (1-3-0) DATA, DEC_ is don't cares
   while(controlByte!=0b01110000){// SS EoC
@@ -402,23 +446,50 @@ void CAL_State(){
   lcd.print("Vr:");
   lcd.print(DAT1);
   lcd.print(" mm/s");
-  while (controlByte!=0b01110001){//1 3 1
-  // weird. HUB sends this message two times,
-  // so this loop is here twice as well, idk
-    readData();
-  }
-  controlByte = 0b0;// so second loop can execute.
-  while (controlByte!=0b01110001){//1 3 1
-    readData();
-  }
+  // while (controlByte!=0b01110001){//1 3 1
+  // // weird. HUB sends this message two times,
+  // // so this loop is here twice as well, idk
+  //   readData();
+  // }
+  // controlByte = 0b0;// so second loop can execute.
+  // while (controlByte!=0b01110001){//1 3 1
+  //   readData();
+  // }
 
-  printColours();//shows colours on LCD. calls the getColours func as well!
+  // printColours();
 
   
   while(!touched){//wait for a touch
+    // firstTime = false;
 
+    while (controlByte!=0b01110001){//1 3 1
+      lcd.setCursor(19,3);
+      lcd.print("r");
+      readData();
+      lcd.setCursor(19,3);
+      lcd.print("R");
+    }
+
+    lcd.setCursor(19,3);
+    lcd.print("P");
+      
+    printColours();
+
+    controlByte = B01010000;
+    DAT1 = B00000000;
+    DAT0 = B00000000;
+    DEC_ = B00000000;
+    writeData();
   }
   touched = false;
+
+  while (controlByte!=0b01110001){//1 3 1
+    readData();
+  }
+
+  printColours();
+
+
   //tell the hub that a touch was made.
   controlByte = B01010000;
   DAT1 = B00000001;
@@ -1019,8 +1090,6 @@ void MAZE_State(){
                 if (controlByte==0b10100100){
                   if (DAT0>=75){
                     keepReversing = false;
-                    lcd.setCursor(15,3);
-                    lcd.print("8=D-");
                   }
                 }
               }
