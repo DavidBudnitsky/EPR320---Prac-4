@@ -601,11 +601,11 @@ void CAL_State(){
   lcd.print("Vr:");
   lcd.print(DAT1);
   lcd.print(" mm/s");
-  while (controlByte!=0b01110001){//1 3 1
-  // weird. HUB sends this message two times,
-  // so this loop is here twice as well, idk
-    readData();
-  }
+  // while (controlByte!=0b01110001){//1 3 1
+  // // weird. HUB sends this message two times,
+  // // so this loop is here twice as well, idk
+  //   readData();
+  // }
   controlByte = 0b0;// so second loop can execute.
   while (controlByte!=0b01110001){//1 3 1
     readData();
@@ -615,8 +615,23 @@ void CAL_State(){
 
   
   while(!touched){//wait for a touch
+    controlByte = B01010000;
+    DAT1 = B00000000;
+    DAT0 = B00000000;
+    DEC_ = B00000000;
+    writeData();
 
+    while (controlByte!=0b01110001){//1 3 1
+      readData();
+    }
+    printColours();//shows colours on LCD. calls the getColours func as well!
   }
+
+  while (controlByte!=0b01110001){//1 3 1
+      readData();
+    }
+    printColours();//shows colours on LCD. calls the getColours func as well!
+
   touched = false;
   //tell the hub that a touch was made.
   controlByte = B01010000;
