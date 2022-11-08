@@ -100,7 +100,7 @@ void loop() {
     }
   }
   // clap stuff
-  float threshold = 3.75;
+  float threshold = 4.325;
   float clapValue = analogRead(A0) * (5.0/1023.0);
   // Serial.println(clapValue);
   bool validClap = false;
