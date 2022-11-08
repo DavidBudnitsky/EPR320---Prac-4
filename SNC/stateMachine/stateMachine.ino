@@ -77,8 +77,6 @@ void loop() {
     }
 }
 
-// ISRs. Set up so that capTouch and clap/snap is done from 1st principles on
-// Nano Every. Nano does SNC and NAVCON. Very easy :)
 void ISR_capTouch(){
   touched = true;
   return;
@@ -91,8 +89,6 @@ void ISR_clapSnap(){
 
 // helper functions
 void lcd_info(){
-// prints to LCD. used for debugging,
-// but won't be part of final car.
   lcd.clear();    
     lcd.setCursor(0,1);
     lcd.print("STATE:");
@@ -260,7 +256,6 @@ void setNextState(int pro_state){
   currState = pro_state;
 }
 
-
 void tellNoTouchNoClap(){
   controlByte = 0b10010001; // listening for clap. 2-1-1
   DAT1 = 0b00000000; // no clap
@@ -346,6 +341,210 @@ void getAndPrintDiagnostics(){
 	lcd.print(incAngle);
 }
 
+void reverse(){
+  bool keepReversing = true;
+  while (keepReversing){
+    tellNoTouchNoClap();
+    controlByte = 0b10010011;
+    DAT1 = v_op;//reverse
+    DAT0 = v_op;
+    DEC_ = 1;
+    writeData();
+    for (int k=0;k<6;k++){
+      readData();
+      if (controlByte==0b10100100){
+        if (DAT0>=75){
+          keepReversing = false;
+          lcd.setCursor(15,3);
+        }
+      }
+      printDiagnostic();
+    }
+  }
+}
+
+void tellFWD(){
+  controlByte = 0b10010011;//2-1-3//i am in navcon
+  DAT1 = v_op;
+  DAT0 = v_op;
+  DEC_ = 0;
+  writeData();
+}
+
+void printDiagnostic(){
+  switch (controlByte){
+    case 0b10100010:{  // 2-2-2 - MDPS  rotation
+      int t_rotAngle = (DAT1<<8)|(DAT0);
+      int t_rotDir = (DEC_==2);
+      lcd.setCursor(11,0);
+      if (t_rotDir){
+      lcd.print("rot:+   ");
+      } else {
+      lcd.print("rot:-   ");
+      }
+      lcd.setCursor(16,0);
+      lcd.print(t_rotAngle);
+      break;
+    }
+    case 0b10100011:{// 2-2-3 MDPS speed
+      lcd.setCursor(0,2);
+      lcd.print("Vl:  ");
+      lcd.setCursor(3,2);
+      lcd.print(DAT0);
+
+      lcd.setCursor(8,2);
+      lcd.print("Vr:  ");
+      lcd.setCursor(11,2);
+      lcd.print(DAT1);
+
+      lcd.print(" mm/s");
+      break;
+    }
+    case 0b10100100:{//2-2-4 MDPS distance
+      int t_dist = (DAT1<<8)|(DAT0);
+      // int dist = (DAT1<<8)|(DAT0);
+      lcd.setCursor(0,3);
+      lcd.print("DIST:          ");
+      lcd.setCursor(5,3);
+      lcd.print(t_dist);
+      lcd.print(" mm");
+      break;
+    }
+    case 0b10110001:{//Colors: 2-3-1 SS
+      byte s1,s2,s3_1,s3_2,s4,s5;
+      s1 = DAT1 &   0b01110000;
+      s2 = DAT1 &   0b00001110;
+      s3_1 = DAT1 & 0b00000001;
+      s3_2 = DAT0 & 0b11000000;
+      s4 = DAT0 &   0b00111000;
+      s5 = DAT0 &   0b00000111;
+      char t_colors[5] = {'W', 'W', 'W', 'W', 'W'};
+      switch (s1){
+        case 0b0000000:
+          t_colors[0] = 'W';
+          break;
+        case 0b0010000:
+          t_colors[0] = 'R';
+          break;
+        case 0b0100000:
+          t_colors[0] = 'G';
+          break;
+        case 0b0110000:
+          t_colors[0] = 'B';
+          break;
+        case 0b1000000:
+          t_colors[0] = 'K';
+          break;
+        default:
+          t_colors[0] = 'X';
+      }
+
+      switch (s2){
+        case 0b0000:
+          t_colors[1] = 'W';
+          break;
+        case 0b0010:
+          t_colors[1] = 'R';
+          break;
+        case 0b0100:
+          t_colors[1] = 'G';
+          break;
+        case 0b0110:
+          t_colors[1] = 'B';
+          break;
+        case 0b1000:
+          t_colors[1] = 'K';
+          break;
+        default:
+          t_colors[1] = 'X';
+      }
+
+      switch (s3_2){
+        case 0b00000000:
+          if (s3_1==0b0){
+              t_colors[2] = 'W';
+          } else {
+              t_colors[2] = 'K';
+          }
+          break;
+        case 0b01000000:
+          t_colors[2] = 'R';
+          break;
+        case 0b10000000:
+          t_colors[2] = 'G';
+          break;
+        case 0b11000000:
+          t_colors[2] = 'B';
+          break;
+        default:
+          t_colors[2] = 'X';
+      }
+
+      switch (s4){
+        case 0b000000:
+          t_colors[3] = 'W';
+          break;
+        case 0b001000:
+          t_colors[3] = 'R';
+          break;
+        case 0b010000:
+          t_colors[3] = 'G';
+          break;
+        case 0b011000:
+          t_colors[3] = 'B';
+          break;
+        case 0b100000:
+          t_colors[3] = 'K';
+          break;
+        default:
+          t_colors[3] = 'X';
+      }
+
+      switch (s5){
+        case 0b000:
+          t_colors[4] = 'W';
+          break;
+        case 0b001:
+          t_colors[4] = 'R';
+          break;
+        case 0b010:
+          t_colors[4] = 'G';
+          break;
+        case 0b011:
+          t_colors[4] = 'B';
+          break;
+        case 0b100:
+          t_colors[4] = 'K';
+          break;
+        default:
+          t_colors[3] = 'X';
+      }
+
+      lcd.setCursor(0,0);
+      lcd.print("COLOR:");
+      for (int k=0;k<5;k++){
+        lcd.print(t_colors[k]);
+      }
+      break; 
+    }
+    case 0b101100010:{//SS Incidence angle
+      lcd.setCursor(11,1);
+      lcd.print("INC:   ");
+      lcd.setCursor(15,1);
+      lcd.print(DAT1);
+      break;
+    }
+    case 0b10110011:{//2-3-3 SS EOM
+      // setNextState(IDEL);
+      // lcd.clear();
+      return;
+      break;      
+    }
+    default:{
+      return;
+    }
+  }
+}
 
 //states
 void IDLE_State(){
@@ -492,11 +691,7 @@ void MAZE_State(){
 
     if (firstNavcon){
       firstNavcon = false;
-      controlByte = 0b10010011;//2-1-3//i am in navcon
-      DAT1 = v_op;
-      DAT0 = v_op;
-      DEC_ = 0;
-      writeData();
+      tellFWD();
     }
 
     
@@ -513,8 +708,8 @@ void MAZE_State(){
       Stop, reverse, stop, rotate, fwd until 𝜃𝑖 ≤ 45°
     */ 
 
-    lcd.setCursor(16,3);
-    lcd.print(incAngle);
+    // lcd.setCursor(16,3);
+    // lcd.print(incAngle);
 
     // getColours();
     if (colors[0]=='W'&&colors[1]=='W'&&colors[2]=='W'&&colors[3]=='W'&&colors[4]=='W'){ // handles QTP 5
@@ -529,6 +724,7 @@ void MAZE_State(){
           writeData();
           for (int k=0;k<6;k++){
             readData();
+            printDiagnostic();
           }
 
           tellNoTouchNoClap();
@@ -539,6 +735,7 @@ void MAZE_State(){
           writeData();
           for (int k=0;k<6;k++){
             readData();
+            printDiagnostic();
           }
 
           //go to IDLE State
@@ -546,11 +743,7 @@ void MAZE_State(){
           return;
       } else {
         tellNoTouchNoClap();
-        controlByte = 0b10010011;
-        DAT1 = v_op;//fwd
-        DAT0 = v_op;
-        DEC_ = 0;
-        writeData();
+        tellFWD();
       }
     }
     if (colors[1]=='R'&&colors[2]=='R'&&colors[3]=='R'){// QTP 5
@@ -562,11 +755,7 @@ void MAZE_State(){
         if (colors[0]=='G'||colors[1]=='G'||colors[3]=='G'||colors[4]=='G' || colors[0]=='W'||colors[1]=='W'||colors[3]=='W'||colors[4]=='W')
           flagBKforNextLine = false;
           tellNoTouchNoClap();
-          controlByte = 0b10010011;
-          DAT1 = v_op;//fwd
-          DAT0 = v_op;
-          DEC_ = 0;
-          writeData();
+          tellFWD();
           continue;
       }
       // QTP 2: R/G, theta>45
@@ -590,21 +779,10 @@ void MAZE_State(){
 
             for (int k=0;k<6;k++){
               readData();
-            }
-            // getAndPrintDiagnostics();
-
-            for (int m=0;m<20;m++){
-              tellNoTouchNoClap();
-              controlByte = 0b10010011;
-              DAT1 = v_op;//reverse
-              DAT0 = v_op;
-              DEC_ = 1;
-              writeData();
-              for (int k=0;k<6;k++){
-                readData();
-              }
+              printDiagnostic();
             }
             
+            reverse();            
 
             tellNoTouchNoClap();
             controlByte = 0b10010011;
@@ -614,6 +792,7 @@ void MAZE_State(){
             writeData();
             for (int k=0;k<6;k++){
               readData();
+              printDiagnostic();
             }
 
             tellNoTouchNoClap();
@@ -624,21 +803,14 @@ void MAZE_State(){
             writeData();
             for (int k=0;k<6;k++){
               readData();
+              printDiagnostic();
             }
             tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
+            tellFWD();
           } else {
             bigLeftRG = true;
             tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
+            tellFWD();
           }
           continue;
         }
@@ -665,21 +837,10 @@ void MAZE_State(){
 
             for (int k=0;k<6;k++){
               readData();
-            }
-            // getAndPrintDiagnostics();
-
-            for (int m=0;m<20;m++){
-              tellNoTouchNoClap();
-              controlByte = 0b10010011;
-              DAT1 = v_op;//reverse
-              DAT0 = v_op;
-              DEC_ = 1;
-              writeData();
-              for (int k=0;k<6;k++){
-                readData();
-              }
+              printDiagnostic();
             }
             
+            reverse();
 
             tellNoTouchNoClap();
             controlByte = 0b10010011;
@@ -689,6 +850,7 @@ void MAZE_State(){
             writeData();
             for (int k=0;k<6;k++){
               readData();
+              printDiagnostic();
             }
 
             tellNoTouchNoClap();
@@ -699,21 +861,14 @@ void MAZE_State(){
             writeData();
             for (int k=0;k<6;k++){
               readData();
+              printDiagnostic();
             }
             tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
+            tellFWD();
           } else {
             bigRightRG = true;
             tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
+            tellFWD();
           }
           continue;
         }
@@ -727,10 +882,6 @@ void MAZE_State(){
         DAT0 = v_op;
         DEC_ = 0;
         writeData();
-        // for (int k=0;k<6;k++){
-        //   readData();
-        // }
-        // getAndPrintDiagnostics();
       } else {
         if (incAngle<=45 && incAngle>5){
           tellNoTouchNoClap();
@@ -742,21 +893,10 @@ void MAZE_State(){
 
           for (int k=0;k<6;k++){
             readData();
-          }
-          // getAndPrintDiagnostics();
-
-          for (int m=0;m<20;m++){
-            tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//reverse
-            DAT0 = v_op;
-            DEC_ = 1;
-            writeData();
-            for (int k=0;k<6;k++){
-              readData();
-            }
+            printDiagnostic();
           }
           
+          reverse();
 
           tellNoTouchNoClap();
           controlByte = 0b10010011;
@@ -766,6 +906,7 @@ void MAZE_State(){
           writeData();
           for (int k=0;k<6;k++){
             readData();
+            printDiagnostic();
           }
 
           tellNoTouchNoClap();
@@ -780,19 +921,12 @@ void MAZE_State(){
           writeData();
           for (int k=0;k<6;k++){
             readData();
+            printDiagnostic();
           }
 
 
           tellNoTouchNoClap();
-          controlByte = 0b10010011;
-          DAT1 = v_op;//fwd
-          DAT0 = v_op;
-          DEC_ = 0;
-          writeData();
-          // for (int k=0;k<6;k++){
-          //   readData();
-          // }
-          // getAndPrintDiagnostics();
+          tellFWD();
         }
       }
     }
@@ -809,21 +943,10 @@ void MAZE_State(){
 
         for (int k=0;k<6;k++){
           readData();
-        }
-        // getAndPrintDiagnostics();
-
-        for (int m=0;m<20;m++){
-          tellNoTouchNoClap();
-          controlByte = 0b10010011;
-          DAT1 = v_op;//reverse
-          DAT0 = v_op;
-          DEC_ = 1;
-          writeData();
-          for (int k=0;k<6;k++){
-            readData();
-          }
+          printDiagnostic();
         }
         
+        reverse();
 
         tellNoTouchNoClap();
         controlByte = 0b10010011;
@@ -833,6 +956,7 @@ void MAZE_State(){
         writeData();
         for (int k=0;k<6;k++){
           readData();
+          printDiagnostic();
         }
 
         tellNoTouchNoClap();
@@ -843,13 +967,10 @@ void MAZE_State(){
         writeData();
         for (int k=0;k<6;k++){
           readData();
+          printDiagnostic();
         }
         tellNoTouchNoClap();
-        controlByte = 0b10010011;
-        DAT1 = v_op;//fwd
-        DAT0 = v_op;
-        DEC_ = 0;
-        writeData();
+        tellFWD();
       }
 
       //QTP 4
@@ -875,20 +996,10 @@ void MAZE_State(){
 
             for (int k=0;k<6;k++){
               readData();
+              printDiagnostic();
             }
-            // getAndPrintDiagnostics();
-
-            for (int m=0;m<15;m++){
-              tellNoTouchNoClap();
-              controlByte = 0b10010011;
-              DAT1 = v_op;//reverse
-              DAT0 = v_op;
-              DEC_ = 1;
-              writeData();
-              for (int k=0;k<6;k++){
-                readData();
-              }
-            }
+            
+            reverse();
 
             tellNoTouchNoClap();
             controlByte = 0b10010011;
@@ -898,6 +1009,7 @@ void MAZE_State(){
             writeData();
             for (int k=0;k<6;k++){
               readData();
+              printDiagnostic();
             }
 
             tellNoTouchNoClap();
@@ -908,21 +1020,14 @@ void MAZE_State(){
             writeData();
             for (int k=0;k<6;k++){
               readData();
+              printDiagnostic();
             }
             tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
+            tellFWD();
           } else {
             bigLeftBK = true;
             tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
+            tellFWD();
           }
           continue;
         }
@@ -948,20 +1053,10 @@ void MAZE_State(){
             writeData();
             for (int k=0;k<6;k++){
               readData();
+              printDiagnostic();
             }
-            // getAndPrintDiagnostics();
 
-            for (int m=1;m<20;m++){
-              tellNoTouchNoClap();
-              controlByte = 0b10010011;
-              DAT1 = v_op;//reverse
-              DAT0 = v_op;
-              DEC_ = 1;
-              writeData();
-              for (int k=0;k<6;k++){
-                readData();
-              }
-            }
+            reverse();
             
 
             tellNoTouchNoClap();
@@ -972,6 +1067,7 @@ void MAZE_State(){
             writeData();
             for (int k=0;k<6;k++){
               readData();
+              printDiagnostic();
             }
 
             tellNoTouchNoClap();
@@ -982,22 +1078,15 @@ void MAZE_State(){
             writeData();
             for (int k=0;k<6;k++){
               readData();
+              printDiagnostic();
             }
             tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
+            tellFWD();
             bigRightBK = false;
           } else {
             bigRightBK = true;
             tellNoTouchNoClap();
-            controlByte = 0b10010011;
-            DAT1 = v_op;//fwd
-            DAT0 = v_op;
-            DEC_ = 0;
-            writeData();
+            tellFWD();
           }
           continue;
         }
@@ -1024,28 +1113,11 @@ void MAZE_State(){
         writeData();
         for (int k=0;k<6;k++){
           readData();
+          printDiagnostic();
         }
         // getAndPrintDiagnostics();
 
-        bool keepReversing = true;
-        while (keepReversing){
-          tellNoTouchNoClap();
-          controlByte = 0b10010011;
-          DAT1 = v_op;//reverse
-          DAT0 = v_op;
-          DEC_ = 1;
-          writeData();
-          for (int k=0;k<6;k++){
-            readData();
-            if (controlByte==0b10100100){
-              if (DAT0>=75){
-                keepReversing = false;
-                lcd.setCursor(15,3);
-                lcd.print("8=D-");
-              }
-            }
-          }
-        }
+        reverse();
             
 
         tellNoTouchNoClap();
@@ -1056,6 +1128,7 @@ void MAZE_State(){
         writeData();
         for (int k=0;k<6;k++){
           readData();
+          printDiagnostic();
         }
 
         tellNoTouchNoClap();
@@ -1071,14 +1144,11 @@ void MAZE_State(){
         writeData();
         for (int k=0;k<6;k++){
           readData();
+          printDiagnostic();
         }
 
         tellNoTouchNoClap();
-        controlByte = 0b10010011;
-        DAT1 = v_op;//fwd
-        DAT0 = v_op;
-        DEC_ = 0;
-        writeData();
+        tellFWD();
       }
 
     }
